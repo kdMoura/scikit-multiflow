@@ -318,6 +318,7 @@ class EvaluatePrequential(StreamEvaluator):
                & (self.stream.has_more_samples())):
             try:
                 X, y = self.stream.next_sample(self.batch_size)
+                
 
                 if X is not None and y is not None:
                     # Test
@@ -334,9 +335,15 @@ class EvaluatePrequential(StreamEvaluator):
                     self.global_sample_count += self.batch_size
 
                     for j in range(self.n_models):
+  
+                        pos = len(self.real_mean_eval_measurements[j]) -1 #get last chunk  (confusion matrix statistics)
+                        
                         for i in range(len(prediction[0])):
                             self.mean_eval_measurements[j].add_result(y[i], prediction[j][i])
                             self.current_eval_measurements[j].add_result(y[i], prediction[j][i])
+                            self.real_mean_eval_measurements[j][pos].add_result(y[i], prediction[j][i])
+                        
+                        self.add_real_mean_evalutor(j)    
                     self._check_progress(actual_max_samples)
 
                     # Train

@@ -87,5 +87,6 @@ TASK_TYPES = [CLASSIFICATION,
               UNDEFINED]
 MEAN = 'mean'
 CURRENT = 'current'
+REAL_MEAN = 'real_mean'
 Y_TRUE = 'y_true'
 Y_PRED = 'y_pred'

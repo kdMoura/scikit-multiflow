@@ -6,6 +6,10 @@ import warnings
 from cpython cimport bool
 from collections import deque
 
+from libc.stdlib cimport malloc, free
+from cython.view cimport array as cvarray
+
+
 from ._confusion_matrix import ConfusionMatrix, MultiLabelConfusionMatrix
 
 DTYPE = np.float

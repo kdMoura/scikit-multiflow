@@ -1,5 +1,6 @@
 import io
 import sys
+import numpy as np
 from abc import ABCMeta, abstractmethod
 from timeit import default_timer as timer
 
@@ -16,6 +17,7 @@ from skmultiflow.metrics import ClassificationPerformanceEvaluator, \
 from skmultiflow.utils import calculate_object_size
 from skmultiflow.visualization.evaluation_visualizer import EvaluationVisualizer
 from .evaluation_data_buffer import EvaluationDataBuffer
+
 
 
 class StreamEvaluator(BaseSKMObject, metaclass=ABCMeta):
@@ -52,10 +54,12 @@ class StreamEvaluator(BaseSKMObject, metaclass=ABCMeta):
         # Metrics
         self.mean_eval_measurements = None
         self.current_eval_measurements = None
+        self.real_mean_eval_measurements = None
         self._data_dict = None
         self._data_buffer = None
         self._file_buffer = ''
         self._file_buffer_size = 0
+        
 
         # Misc
         self._method = None
@@ -269,12 +273,15 @@ class StreamEvaluator(BaseSKMObject, metaclass=ABCMeta):
         """
         self.mean_eval_measurements = []
         self.current_eval_measurements = []
+        self.real_mean_eval_measurements = []
 
         if self._task_type == constants.CLASSIFICATION:
             for i in range(self.n_models):
                 self.mean_eval_measurements.append(ClassificationPerformanceEvaluator())
                 self.current_eval_measurements.append(WindowClassificationPerformanceEvaluator
                                                       (window_size=self.n_sliding))
+                # real_mean_eval_measurements: each model has a list of measures for each chunk of data arriving
+                self.real_mean_eval_measurements.append([ClassificationPerformanceEvaluator()])
 
         elif self._task_type == constants.MULTI_TARGET_CLASSIFICATION:
             for i in range(self.n_models):
@@ -304,7 +311,7 @@ class StreamEvaluator(BaseSKMObject, metaclass=ABCMeta):
         # Evaluation data buffer
         self._data_dict = {}
         for metric in self.metrics:
-            data_ids = [constants.MEAN, constants.CURRENT]
+            data_ids = [constants.MEAN, constants.CURRENT, constants.REAL_MEAN]
             if metric == constants.TRUE_VS_PREDICTED:
                 data_ids = [constants.Y_TRUE, constants.Y_PRED]
             elif metric == constants.DATA_POINTS:
@@ -338,51 +345,101 @@ class StreamEvaluator(BaseSKMObject, metaclass=ABCMeta):
                 for i in range(self.n_models):
                     values[0].append(self.mean_eval_measurements[i].accuracy_score())
                     values[1].append(self.current_eval_measurements[i].accuracy_score())
+                    
+                    metric_values = []
+                    for ch in self.real_mean_eval_measurements[i]:
+                        metric_values.append(ch.accuracy_score())
+                    values[2].append(np.mean(metric_values))
 
             elif metric == constants.KAPPA:
                 for i in range(self.n_models):
                     values[0].append(self.mean_eval_measurements[i].kappa_score())
                     values[1].append(self.current_eval_measurements[i].kappa_score())
+                    
+                    metric_values = []
+                    for ch in self.real_mean_eval_measurements[i]:
+                        metric_values.append(ch.kappa_score())
+                    values[2].append(np.mean(metric_values))
 
             elif metric == constants.KAPPA_T:
                 for i in range(self.n_models):
                     values[0].append(self.mean_eval_measurements[i].kappa_t_score())
                     values[1].append(self.current_eval_measurements[i].kappa_t_score())
+                    
+                    metric_values = []
+                    for ch in self.real_mean_eval_measurements[i]:
+                        metric_values.append(ch.kappa_t_score())
+                    values[2].append(np.mean(metric_values))
 
             elif metric == constants.KAPPA_M:
                 for i in range(self.n_models):
                     values[0].append(self.mean_eval_measurements[i].kappa_m_score())
                     values[1].append(self.current_eval_measurements[i].kappa_m_score())
+                    
+                    metric_values = []
+                    for ch in self.real_mean_eval_measurements[i]:
+                        metric_values.append(ch.kappa_m_score())
+                    values[2].append(np.mean(metric_values))
 
             elif metric == constants.HAMMING_SCORE:
                 for i in range(self.n_models):
                     values[0].append(self.mean_eval_measurements[i].hamming_score())
                     values[1].append(self.current_eval_measurements[i].hamming_score())
+                    
+                    metric_values = []
+                    for ch in self.real_mean_eval_measurements[i]:
+                        metric_values.append(ch.hamming_score())
+                    values[2].append(np.mean(metric_values))
 
             elif metric == constants.HAMMING_LOSS:
                 for i in range(self.n_models):
                     values[0].append(self.mean_eval_measurements[i].hamming_loss_score())
                     values[1].append(self.current_eval_measurements[i].hamming_loss_score())
+                    
+                    metric_values = []
+                    for ch in self.real_mean_eval_measurements[i]:
+                        metric_values.append(ch.hamming_loss_score())
+                    values[2].append(np.mean(metric_values))
 
             elif metric == constants.EXACT_MATCH:
                 for i in range(self.n_models):
                     values[0].append(self.mean_eval_measurements[i].exact_match_score())
                     values[1].append(self.current_eval_measurements[i].exact_match_score())
+                    
+                    metric_values = []
+                    for ch in self.real_mean_eval_measurements[i]:
+                        metric_values.append(ch.exact_match_score())
+                    values[2].append(np.mean(metric_values))
 
             elif metric == constants.J_INDEX:
                 for i in range(self.n_models):
                     values[0].append(self.mean_eval_measurements[i].jaccard_score())
                     values[1].append(self.current_eval_measurements[i].jaccard_score())
+                    
+                    metric_values = []
+                    for ch in self.real_mean_eval_measurements[i]:
+                        metric_values.append(ch.jaccard_score())
+                    values[2].append(np.mean(metric_values))
 
             elif metric == constants.MSE:
                 for i in range(self.n_models):
                     values[0].append(self.mean_eval_measurements[i].get_mean_square_error())
                     values[1].append(self.current_eval_measurements[i].get_mean_square_error())
+                    
+                    metric_values = []
+                    for ch in self.real_mean_eval_measurements[i]:
+                        metric_values.append(ch.get_mean_square_error())
+                    values[2].append(np.mean(metric_values))
 
             elif metric == constants.MAE:
                 for i in range(self.n_models):
                     values[0].append(self.mean_eval_measurements[i].get_average_error())
                     values[1].append(self.current_eval_measurements[i].get_average_error())
+                    
+                    metric_values = []
+                    for ch in self.real_mean_eval_measurements[i]:
+                        metric_values.append(ch.get_average_error())
+                    values[2].append(np.mean(metric_values))
 
             elif metric == constants.AMSE:
                 for i in range(self.n_models):
@@ -390,12 +447,22 @@ class StreamEvaluator(BaseSKMObject, metaclass=ABCMeta):
                         self.mean_eval_measurements[i].get_average_mean_square_error())
                     values[1].append(
                         self.current_eval_measurements[i].get_average_mean_square_error())
+                    
+                    metric_values = []
+                    for ch in self.real_mean_eval_measurements[i]:
+                        metric_values.append(ch.get_average_mean_square_error())
+                    values[2].append(np.mean(metric_values))
 
             elif metric == constants.AMAE:
                 for i in range(self.n_models):
                     values[0].append(self.mean_eval_measurements[i].get_average_absolute_error())
                     values[1].append(
                         self.current_eval_measurements[i].get_average_absolute_error())
+                    
+                    metric_values = []
+                    for ch in self.real_mean_eval_measurements[i]:
+                        metric_values.append(ch.get_average_absolute_error())
+                    values[2].append(np.mean(metric_values))
 
             elif metric == constants.ARMSE:
                 for i in range(self.n_models):
@@ -403,26 +470,51 @@ class StreamEvaluator(BaseSKMObject, metaclass=ABCMeta):
                         self.mean_eval_measurements[i].get_average_root_mean_square_error())
                     values[1].append(
                         self.current_eval_measurements[i].get_average_root_mean_square_error())
+                    
+                    metric_values = []
+                    for ch in self.real_mean_eval_measurements[i]:
+                        metric_values.append(ch.get_average_root_mean_square_error())
+                    values[2].append(np.mean(metric_values))
 
             elif metric == constants.F1_SCORE:
                 for i in range(self.n_models):
                     values[0].append(self.mean_eval_measurements[i].f1_score())
                     values[1].append(self.current_eval_measurements[i].f1_score())
+                    
+                    metric_values = []
+                    for ch in self.real_mean_eval_measurements[i]:
+                        metric_values.append(ch.f1_score())
+                    values[2].append(np.mean(metric_values))
 
             elif metric == constants.PRECISION:
                 for i in range(self.n_models):
                     values[0].append(self.mean_eval_measurements[i].precision_score())
                     values[1].append(self.current_eval_measurements[i].precision_score())
+                    
+                    metric_values = []
+                    for ch in self.real_mean_eval_measurements[i]:
+                        metric_values.append(ch.precision_score())
+                    values[2].append(np.mean(metric_values))
 
             elif metric == constants.RECALL:
                 for i in range(self.n_models):
                     values[0].append(self.mean_eval_measurements[i].recall_score())
                     values[1].append(self.current_eval_measurements[i].recall_score())
+                    
+                    metric_values = []
+                    for ch in self.real_mean_eval_measurements[i]:
+                        metric_values.append(ch.recall_score())
+                    values[2].append(np.mean(metric_values))
 
             elif metric == constants.GMEAN:
                 for i in range(self.n_models):
                     values[0].append(self.mean_eval_measurements[i].geometric_mean_score())
                     values[1].append(self.current_eval_measurements[i].geometric_mean_score())
+                    
+                    metric_values = []
+                    for ch in self.real_mean_eval_measurements[i]:
+                        metric_values.append(ch.geometric_mean_score())
+                    values[2].append(np.mean(metric_values))
 
             elif metric == constants.TRUE_VS_PREDICTED:
                 y_true = -1
@@ -515,7 +607,7 @@ class StreamEvaluator(BaseSKMObject, metaclass=ABCMeta):
                     sample_id=sample_id,
                     metric_id=metric,
                     data_id='model_size',
-                    value=values)
+                    value=values)               
             else:
                 # Default case, 'mean' and 'current' performance
                 self._data_buffer.update_data(
@@ -528,6 +620,11 @@ class StreamEvaluator(BaseSKMObject, metaclass=ABCMeta):
                     metric_id=metric,
                     data_id=constants.CURRENT,
                     value=values[1])
+                self._data_buffer.update_data(
+                    sample_id=sample_id,
+                    metric_id=metric,
+                    data_id=constants.REAL_MEAN,
+                    value=values[2])
 
         shift = 0
         if self._method == 'prequential':
@@ -862,3 +959,6 @@ class StreamEvaluator(BaseSKMObject, metaclass=ABCMeta):
         """
         _, measurements = self.get_measurements(model_idx)
         return measurements
+
+    def add_real_mean_evalutor(self, model_index):
+        self.real_mean_eval_measurements[model_index].append(ClassificationPerformanceEvaluator())
