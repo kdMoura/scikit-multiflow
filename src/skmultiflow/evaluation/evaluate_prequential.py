@@ -336,6 +336,8 @@ class EvaluatePrequential(StreamEvaluator):
 
                     for j in range(self.n_models):
   
+                        
+                        self.add_real_mean_evalutor(j) # add new evalutor for the new chunk
                         pos = len(self.real_mean_eval_measurements[j]) -1 #get last chunk  (confusion matrix statistics)
                         
                         for i in range(len(prediction[0])):
@@ -343,7 +345,7 @@ class EvaluatePrequential(StreamEvaluator):
                             self.current_eval_measurements[j].add_result(y[i], prediction[j][i])
                             self.real_mean_eval_measurements[j][pos].add_result(y[i], prediction[j][i])
                         
-                        self.add_real_mean_evalutor(j)    
+                        
                     self._check_progress(actual_max_samples)
 
                     # Train

@@ -281,7 +281,7 @@ class StreamEvaluator(BaseSKMObject, metaclass=ABCMeta):
                 self.current_eval_measurements.append(WindowClassificationPerformanceEvaluator
                                                       (window_size=self.n_sliding))
                 # real_mean_eval_measurements: each model has a list of measures for each chunk of data arriving
-                self.real_mean_eval_measurements.append([ClassificationPerformanceEvaluator()])
+                self.real_mean_eval_measurements.append([])
 
         elif self._task_type == constants.MULTI_TARGET_CLASSIFICATION:
             for i in range(self.n_models):
@@ -340,7 +340,7 @@ class StreamEvaluator(BaseSKMObject, metaclass=ABCMeta):
         sample_id = self.global_sample_count + shift
 
         for metric in self.metrics:
-            values = [[], []]
+            values = [[], [], []]
             if metric == constants.ACCURACY:
                 for i in range(self.n_models):
                     values[0].append(self.mean_eval_measurements[i].accuracy_score())
@@ -657,27 +657,27 @@ class StreamEvaluator(BaseSKMObject, metaclass=ABCMeta):
                 for metric in self.metrics:
                     if metric == constants.ACCURACY:
                         for i in range(self.n_models):
-                            header += ',mean_acc_[{0}],current_acc_[{0}]'.format(
+                            header += ',mean_acc_[{0}],current_acc_[{0}],realmean_acc_[{0}]'.format(
                                 self.model_names[i])
                     elif metric == constants.MSE:
                         for i in range(self.n_models):
-                            header += ',mean_mse_[{0}],current_mse_[{0}]'.format(
+                            header += ',mean_mse_[{0}],current_mse_[{0}],realmean_mse_[{0}]'.format(
                                 self.model_names[i])
                     elif metric == constants.MAE:
                         for i in range(self.n_models):
-                            header += ',mean_mae_[{0}],current_mae_[{0}]'.format(
+                            header += ',mean_mae_[{0}],current_mae_[{0}],realmean_mae_[{0}]'.format(
                                 self.model_names[i])
                     elif metric == constants.AMSE:
                         for i in range(self.n_models):
-                            header += ',mean_amse_[{0}],current_amse_[{0}]'.format(
+                            header += ',mean_amse_[{0}],current_amse_[{0}],realmean_amse_[{0}]'.format(
                                 self.model_names[i])
                     elif metric == constants.AMAE:
                         for i in range(self.n_models):
-                            header += ',mean_amae_[{0}],current_amae_[{0}]'.format(
+                            header += ',mean_amae_[{0}],current_amae_[{0}],realmean_amae_[{0}]'.format(
                                 self.model_names[i])
                     elif metric == constants.ARMSE:
                         for i in range(self.n_models):
-                            header += ',mean_armse_[{0}],current_armse_[{0}]'.format(
+                            header += ',mean_armse_[{0}],current_armse_[{0}],realmean_armse_[{0}]'.format(
                                 self.model_names[i])
                     elif metric == constants.TRUE_VS_PREDICTED:
                         header += ',true_value'
@@ -694,7 +694,7 @@ class StreamEvaluator(BaseSKMObject, metaclass=ABCMeta):
                         continue
                     else:
                         for i in range(self.n_models):
-                            header += ',mean_{0}_[{1}],current_{0}_[{1}]'.format(
+                            header += ',mean_{0}_[{1}],current_{0}_[{1}],realmean_{0}_[{1}]'.format(
                                 metric, self.model_names[i])
                 f.write(header)
 
@@ -733,9 +733,11 @@ class StreamEvaluator(BaseSKMObject, metaclass=ABCMeta):
                         metric_id=metric, data_id=constants.MEAN)
                     current_values = self._data_buffer.get_data(
                         metric_id=metric, data_id=constants.CURRENT)
-                    values = (mean_values, current_values)
+                    realmean_values = self._data_buffer.get_data(
+                        metric_id=metric, data_id=constants.REAL_MEAN)
+                    values = (mean_values, current_values, realmean_values)
                     for i in range(self.n_models):
-                        line += ',{:.6f},{:.6f}'.format(values[0][i], values[1][i])
+                        line += ',{:.6f},{:.6f},{:.6f}'.format(values[0][i], values[1][i], values[2][i])
 
             line = '\n' + line
             if sys.getsizeof(line) + self._file_buffer_size > io.DEFAULT_BUFFER_SIZE:
