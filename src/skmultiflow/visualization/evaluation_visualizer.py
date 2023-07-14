@@ -264,6 +264,9 @@ class EvaluationVisualizer(BaseListener):
                         if data_id == constants.CURRENT:
                             label = '{}  (current, {} samples)'.format(self.model_names[i], self.n_wait)
                             line_style = '-'
+                        elif data_id == constants.REAL_MEAN:
+                            label = '{} (real mean)'.format(self.model_names[i])
+                            line_style = '--'
                         else:
                             label = '{} (mean)'.format(self.model_names[i])
                             line_style = ':'
