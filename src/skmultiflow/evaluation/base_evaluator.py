@@ -16,6 +16,8 @@ from skmultiflow.metrics import ClassificationPerformanceEvaluator, \
 from skmultiflow.utils import calculate_object_size
 from skmultiflow.visualization.evaluation_visualizer import EvaluationVisualizer
 from .evaluation_data_buffer import EvaluationDataBuffer
+from skmultiflow.utils import extra
+
 
 
 class StreamEvaluator(BaseSKMObject, metaclass=ABCMeta):
@@ -56,6 +58,9 @@ class StreamEvaluator(BaseSKMObject, metaclass=ABCMeta):
         self._data_buffer = None
         self._file_buffer = ''
         self._file_buffer_size = 0
+        # EqualErrorRate
+        self.eer_mean_eval = None
+        self.eer_current_eval = None
 
         # Misc
         self._method = None
@@ -269,12 +274,16 @@ class StreamEvaluator(BaseSKMObject, metaclass=ABCMeta):
         """
         self.mean_eval_measurements = []
         self.current_eval_measurements = []
+        self.eer_mean_eval, self.eer_current_eval = [], []
 
         if self._task_type == constants.CLASSIFICATION:
             for i in range(self.n_models):
                 self.mean_eval_measurements.append(ClassificationPerformanceEvaluator())
                 self.current_eval_measurements.append(WindowClassificationPerformanceEvaluator
                                                       (window_size=self.n_sliding))
+                #workaround to have EER sooner
+                self.eer_mean_eval.append(extra.EqualErrorRate())
+                self.eer_current_eval.append(extra.EqualErrorRate(pred_window_size=self.n_sliding))
 
         elif self._task_type == constants.MULTI_TARGET_CLASSIFICATION:
             for i in range(self.n_models):
@@ -423,6 +432,11 @@ class StreamEvaluator(BaseSKMObject, metaclass=ABCMeta):
                 for i in range(self.n_models):
                     values[0].append(self.mean_eval_measurements[i].geometric_mean_score())
                     values[1].append(self.current_eval_measurements[i].geometric_mean_score())
+            
+            elif metric == constants.EER:
+                for i in range(self.n_models):
+                    values[0].append(self.eer_mean_eval[i].compute_eer())
+                    values[1].append(self.eer_current_eval[i].compute_eer())
 
             elif metric == constants.TRUE_VS_PREDICTED:
                 y_true = -1
@@ -714,6 +728,11 @@ class StreamEvaluator(BaseSKMObject, metaclass=ABCMeta):
                 print('{} - G-mean: {:.4f}'.format(self.model_names[i],
                                                       self._data_buffer.get_data(
                                                           metric_id=constants.GMEAN,
+                                                          data_id=constants.MEAN)[i]))
+            if constants.EER in self.metrics:
+                print('{} - Equal error rate: {:.4f}'.format(self.model_names[i],
+                                                      self._data_buffer.get_data(
+                                                          metric_id=constants.EER,
                                                           data_id=constants.MEAN)[i]))
             if constants.HAMMING_SCORE in self.metrics:
                 print('{} - Hamming score: {:.4f}'.format(self.model_names[i],

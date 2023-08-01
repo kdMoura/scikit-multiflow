@@ -322,11 +322,15 @@ class EvaluatePrequential(StreamEvaluator):
                 if X is not None and y is not None:
                     # Test
                     prediction = [[] for _ in range(self.n_models)]
+                    prediction_proba = [[] for _ in range(self.n_models)]
                     for i in range(self.n_models):
                         try:
                             # Testing time
                             self.running_time_measurements[i].compute_testing_time_begin()
                             prediction[i].extend(self.model[i].predict(X))
+                            
+                            #For EER
+                            prediction_proba[i].extend(self.model[i].predict_proba(X))
                             self.running_time_measurements[i].compute_testing_time_end()
                         except TypeError:
                             raise TypeError("Unexpected prediction value from {}"
@@ -337,9 +341,15 @@ class EvaluatePrequential(StreamEvaluator):
                         for i in range(len(prediction[0])):
                             self.mean_eval_measurements[j].add_result(y[i], prediction[j][i])
                             self.current_eval_measurements[j].add_result(y[i], prediction[j][i])
+                            
+                        #For EER
+                        pred_proba = [p[1] for p in prediction_proba[j]] #all predictions of class 1 (positive)
+                        self.eer_mean_eval[j].add_predictions(y, pred_proba)
+                        self.eer_current_eval[j].add_predictions(y, pred_proba)
+                            
                     self._check_progress(actual_max_samples)
 
-                    # Train
+                    # Trainevaluation_summary
                     if first_run:
                         for i in range(self.n_models):
                             if self._task_type != constants.REGRESSION and \

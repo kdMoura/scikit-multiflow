@@ -19,6 +19,7 @@ F1_SCORE = 'f1'
 GMEAN = 'gmean'
 PRECISION = 'precision'
 RECALL = 'recall'
+EER = 'equal_error_rate'
 
 PLOT_TYPES = [ACCURACY,
               KAPPA,
@@ -38,7 +39,7 @@ PLOT_TYPES = [ACCURACY,
               RECALL,
               F1_SCORE,
               GMEAN,
-
+              EER,
               DATA_POINTS,
               RUNNING_TIME,
               MODEL_SIZE]
@@ -50,6 +51,7 @@ CLASSIFICATION_METRICS = [ACCURACY,
                           RECALL,
                           PRECISION,
                           GMEAN,
+                          EER,
                           F1_SCORE,
 
                           DATA_POINTS,
