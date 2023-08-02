@@ -19,7 +19,7 @@ F1_SCORE = 'f1'
 GMEAN = 'gmean'
 PRECISION = 'precision'
 RECALL = 'recall'
-EER = 'equal_error_rate'
+EER = 'eer'
 
 PLOT_TYPES = [ACCURACY,
               KAPPA,
