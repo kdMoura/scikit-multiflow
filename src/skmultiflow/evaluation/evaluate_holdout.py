@@ -158,7 +158,8 @@ class EvaluateHoldout(StreamEvaluator):
                  show_plot=False,
                  restart_stream=True,
                  test_size=5000,
-                 dynamic_test_set=False):
+                 dynamic_test_set=False,
+                 pretrain_size=0):
 
         super().__init__()
         self._method = 'holdout'
@@ -180,6 +181,7 @@ class EvaluateHoldout(StreamEvaluator):
         else:
             self.test_size = test_size
         self.n_sliding = test_size
+        self.pretrain_size = pretrain_size
 
         warnings.filterwarnings("ignore", ".*invalid value encountered in true_divide.*")
         warnings.filterwarnings("ignore", ".*Passing 1d.*")
@@ -246,10 +248,13 @@ class EvaluateHoldout(StreamEvaluator):
         while ((self.global_sample_count < actual_max_samples) & (self._end_time - self._start_time < self.max_time)
                & (self.stream.has_more_samples())):
             try:
-                X, y = self.stream.next_sample(self.batch_size)
+                if self.pretrain_size > 0:
+                    X, y = self.stream.next_sample(self.pretrain_size)
+                else:
+                    X, y = self.stream.next_sample(self.batch_size)
 
                 if X is not None and y is not None:
-                    self.global_sample_count += self.batch_size
+                    self.global_sample_count += self.pretrain_size if self.pretrain_size > 0 else self.batch_size
 
                     # Train
                     if first_run:
